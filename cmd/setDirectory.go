@@ -24,35 +24,46 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-// setDirectoryCmd represents the setDirectory command
+// setDirectoryCmd define the directory which contains the FA assets
 var setDirectoryCmd = &cobra.Command{
-	Use:   "setDirectory",
-	Short: "Define the directory which contains assets",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "setDirectory [path]",
+	Short: "Define the directory which contains your assets",
+	Long: `Define the directory which contains your assets. It will be used by the updateAssets command to get newer
+versions if exists.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("setDirectory called")
+		curDir := viper.GetString("assetsDirectory")
+		isForced, _ := cmd.Flags().GetBool("force")
+
+		if "" != curDir && !isForced {
+			fmt.Printf("The assets directory is already configured: %s\n\n", curDir)
+			fmt.Println("Please, use the flag --force flag if you want to override the configuration.")
+			return
+		}
+
+		dir := args[0]
+		if stat, err := os.Stat(dir); nil != err || !stat.IsDir() {
+			fmt.Fprintln(os.Stderr, fmt.Sprintf("%s is not a valid directory", dir))
+			os.Exit(1)
+		}
+
+		viper.Set("assetsDirectory", dir)
+		err := viper.WriteConfig()
+		if nil != err {
+			fmt.Fprintln(os.Stderr, fmt.Sprintf("Error while saving configuration: %s", err.Error()))
+			os.Exit(1)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(setDirectoryCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// setDirectoryCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// setDirectoryCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	setDirectoryCmd.Flags().BoolP("force", "f", false, "Force directory override if already set")
 }
