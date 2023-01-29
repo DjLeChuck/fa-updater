@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 DjLeChhuck <djlechuck@gmail.com>
+Copyright © 2023 DjLeChuck <djlechuck@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/djlechuck/fa-updater/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,9 +35,8 @@ import (
 var setDirectoryCmd = &cobra.Command{
 	Use:   "setDirectory [path]",
 	Short: "Define the directory which contains your assets",
-	Long: `Define the directory which contains your assets. It will be used by the updateAssets command to get newer
-versions if exists.`,
-	Args: cobra.ExactArgs(1),
+	Long:  "Define the directory which contains your assets. It will be used by the updateAssets command to get newer versions if exists.",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		curDir := viper.GetString("assetsDirectory")
 		isForced, _ := cmd.Flags().GetBool("force")
@@ -48,15 +48,16 @@ versions if exists.`,
 		}
 
 		dir := args[0]
-		if stat, err := os.Stat(dir); nil != err || !stat.IsDir() {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("%s is not a valid directory", dir))
+		err := config.CheckDirectory(dir)
+		if nil != err {
+			fmt.Fprintln(os.Stderr, "Cannot validate directory", dir, ":", err.Error())
 			os.Exit(1)
 		}
 
 		viper.Set("assetsDirectory", dir)
-		err := viper.WriteConfig()
+		err = viper.WriteConfig()
 		if nil != err {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("Error while saving configuration: %s", err.Error()))
+			fmt.Fprintln(os.Stderr, "Error while saving configuration:", err.Error())
 			os.Exit(1)
 		}
 	},

@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 DjLeChuck djlechuck@gmail.com
+Copyright © 2023 DjLeChuck <djlechuck@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,9 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "fa-updater",
 	Short: "Easily keep up-to-date your FA files",
-	Long: `FA updater is a simple tool that will allow you to keep your FA files up to date. It will analyze the 
-versions you have and check if more recent ones exist in order to download them easily.
+	Long: `FA updater is a simple tool that will allow you to keep your FA files up to date. It will analyze the versions you have and check if more recent ones exist in order to download them easily.
 
-First, be sure to define the directory which contains your assets (fa-updater setDirectory), then launch the update
-process (fa-updater updateAssets).`,
+First, be sure to define the directory which contains your assets (fa-updater setDirectory), then launch the update process (fa-updater updateAssets).`,
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
@@ -58,10 +56,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.fa-updater.yaml)")
 }

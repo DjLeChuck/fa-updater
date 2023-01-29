@@ -1,5 +1,4 @@
-The MIT License (MIT)
-
+/*
 Copyright © 2023 DjLeChuck <djlechuck@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,3 +18,35 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+*/
+
+package config
+
+import (
+	"errors"
+	"os"
+
+	"github.com/spf13/viper"
+)
+
+var ErrInvalidAssetsDirectory = errors.New("not a valid directory")
+
+func CheckConfigAssetsDirectory() error {
+	return checkDirectory(viper.GetString("assetsDirectory"))
+}
+
+func CheckDirectory(dir string) error {
+	return checkDirectory(dir)
+}
+
+func checkDirectory(dir string) error {
+	if "" == dir {
+		return ErrInvalidAssetsDirectory
+	}
+
+	if stat, err := os.Stat(dir); nil != err || !stat.IsDir() {
+		return ErrInvalidAssetsDirectory
+	}
+
+	return nil
+}
