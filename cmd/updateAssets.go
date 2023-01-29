@@ -73,7 +73,7 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 
 		// XPath all the file URLs and get packs
 		list := htmlquery.Find(doc, fmt.Sprintf("//a[starts-with(@href, '%s')]", PatreonPackLinkPrefix))
-		if 0 == len(list) {
+		if len(list) == 0 {
 			fmt.Fprintln(os.Stderr, "Cannot find any packs. Ensure you have correctly copy the page source code.")
 			os.Exit(1)
 		}
@@ -126,7 +126,7 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 
 		newPacks := pack.PackDiff(packs, localPacks)
 
-		if 0 == len(newPacks) {
+		if len(newPacks) == 0 {
 			fmt.Println("All your packs are already up-to-date!")
 
 			os.Exit(0)
@@ -148,7 +148,7 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 				fmt.Println("\t", oldPack.Name)
 				err := os.Remove(oldPack.Path)
 				if nil != err {
-					fmt.Sprintf("Error while removing %s: %s", oldPack.Name, err.Error())
+					fmt.Printf("Error while removing %s: %s", oldPack.Name, err.Error())
 				}
 			}
 		}

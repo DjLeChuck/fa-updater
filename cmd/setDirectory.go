@@ -41,7 +41,7 @@ var setDirectoryCmd = &cobra.Command{
 		curDir := viper.GetString("assetsDirectory")
 		isForced, _ := cmd.Flags().GetBool("force")
 
-		if "" != curDir && !isForced {
+		if curDir != "" && !isForced {
 			fmt.Printf("The assets directory is already configured: %s\n\n", curDir)
 			fmt.Println("Please, use the flag --force flag if you want to override the configuration.")
 			return

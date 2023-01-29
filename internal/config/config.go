@@ -40,7 +40,7 @@ func CheckDirectory(dir string) error {
 }
 
 func checkDirectory(dir string) error {
-	if "" == dir {
+	if dir == "" {
 		return ErrInvalidAssetsDirectory
 	}
 

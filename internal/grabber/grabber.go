@@ -68,7 +68,7 @@ func downloadPack(dir string, sessionId string, pack data.AssetsPack) {
 	resp := client.Do(grabReq)
 	fmt.Printf("  %v\n", resp.HTTPResponse.Status)
 
-	if 200 != resp.HTTPResponse.StatusCode {
+	if resp.HTTPResponse.StatusCode != 200 {
 		fmt.Fprintln(
 			os.Stderr, "Cannot access to the URL", pack.Path, ". Please ensure the given cookie is correct.",
 		)
