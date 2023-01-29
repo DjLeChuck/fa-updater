@@ -49,7 +49,7 @@ func removeFile(resp *grab.Response) {
 // downloadPack downloads the given pack into the assets directory
 func downloadPack(dir string, sessionId string, pack data.AssetsPack) {
 	// Create client
-	req, err := http.NewRequest("GET", pack.Url, nil)
+	req, err := http.NewRequest("GET", pack.Path, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -70,7 +70,7 @@ func downloadPack(dir string, sessionId string, pack data.AssetsPack) {
 
 	if 200 != resp.HTTPResponse.StatusCode {
 		fmt.Fprintln(
-			os.Stderr, "Cannot access to the URL", pack.Url, ". Please ensure the given cookie is correct.",
+			os.Stderr, "Cannot access to the URL", pack.Path, ". Please ensure the given cookie is correct.",
 		)
 
 		removeFile(resp)

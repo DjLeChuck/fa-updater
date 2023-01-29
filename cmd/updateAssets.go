@@ -27,15 +27,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/antchfx/htmlquery"
+	"github.com/djlechuck/fa-updater/internal/clipboard"
 	"github.com/djlechuck/fa-updater/internal/config"
 	"github.com/djlechuck/fa-updater/internal/data"
 	"github.com/djlechuck/fa-updater/internal/grabber"
+	"github.com/djlechuck/fa-updater/internal/pack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.design/x/clipboard"
 )
 
 const PatreonPostLink = "https://www.patreon.com/posts/56375276"
@@ -55,24 +57,15 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 			os.Exit(1)
 		}
 
-		err = clipboard.Init()
-		if err != nil {
-			panic(err)
-		}
-
 		fmt.Printf(
-			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘+U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘+A and ⌘+C), then go back here and press ENTER.",
+			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘ +U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘ +A and ⌘ +C), then go back here and press ENTER.",
 			PatreonPostLink,
 		)
 		fmt.Println("")
 		fmt.Scanln()
 
-		// Reads clipboard content
-		cb := clipboard.Read(clipboard.FmtText)
-		clipboard.Write(clipboard.FmtText, []byte(""))
-
 		// Parse clipboard content
-		doc, err := htmlquery.Parse(bytes.NewReader(cb))
+		doc, err := htmlquery.Parse(bytes.NewReader(clipboard.ReadBytes()))
 		if nil != err {
 			fmt.Fprintln(os.Stderr, "Cannot parse Patreon post:", err.Error())
 			os.Exit(1)
@@ -102,8 +95,9 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 			packs = append(
 				packs, data.AssetsPack{
 					Name:       name,
-					Url:        htmlquery.SelectAttr(n, "href"),
+					Path:       htmlquery.SelectAttr(n, "href"),
 					Thumbnails: isThumbnails,
+					IsLocal:    false,
 				},
 			)
 
@@ -121,28 +115,16 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 
 		var localPacks []data.AssetsPack
 		for _, file := range files {
-			localPacks = append(localPacks, data.AssetsPack{Name: file.Name()})
+			localPacks = append(
+				localPacks, data.AssetsPack{
+					Name:    file.Name(),
+					Path:    filepath.Join(dir, file.Name()),
+					IsLocal: true,
+				},
+			)
 		}
 
-		var newPacks []data.AssetsPack
-
-		for _, pack := range packs {
-			if pack.Thumbnails {
-				continue
-			}
-
-			localPackFind := false
-			for _, localPack := range localPacks {
-				if pack.Name == localPack.Name {
-					localPackFind = true
-					break
-				}
-			}
-
-			if !localPackFind {
-				newPacks = append(newPacks, pack)
-			}
-		}
+		newPacks := pack.PackDiff(packs, localPacks)
 
 		if 0 == len(newPacks) {
 			fmt.Println("All your packs are already up-to-date!")
@@ -151,14 +133,25 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 		}
 
 		fmt.Println("There are", len(newPacks), "packs to download.")
-		fmt.Println("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘+C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
+		fmt.Println("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘ +C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
 		fmt.Println("")
 		fmt.Scanln()
 
-		cb = clipboard.Read(clipboard.FmtText)
-		clipboard.Write(clipboard.FmtText, []byte(""))
+		grabber.GrabPack(clipboard.ReadString(), newPacks)
 
-		grabber.GrabPack(strings.Trim(string(cb), " "), newPacks)
+		oldPacks := pack.PackDiff(localPacks, packs)
+
+		if 0 < len(oldPacks) {
+			fmt.Println("Removing old packs:")
+
+			for _, oldPack := range oldPacks {
+				fmt.Println("\t", oldPack.Name)
+				err := os.Remove(oldPack.Path)
+				if nil != err {
+					fmt.Sprintf("Error while removing %s: %s", oldPack.Name, err.Error())
+				}
+			}
+		}
 	},
 }
 

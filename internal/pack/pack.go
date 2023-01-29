@@ -20,11 +20,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package data
+package pack
 
-type AssetsPack struct {
-	Name       string
-	Path       string
-	Thumbnails bool
-	IsLocal    bool
+import (
+	"github.com/djlechuck/fa-updater/internal/data"
+)
+
+// PackDiff returns packs which are in the first slice but not in the second.
+func PackDiff(a []data.AssetsPack, b []data.AssetsPack) []data.AssetsPack {
+	var packs []data.AssetsPack
+
+	for _, aPack := range a {
+		if aPack.Thumbnails {
+			continue
+		}
+
+		found := false
+		for _, bPack := range b {
+			if aPack.Name == bPack.Name {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			packs = append(packs, aPack)
+		}
+	}
+
+	return packs
 }
