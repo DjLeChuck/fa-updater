@@ -25,7 +25,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,13 +103,17 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 		logger.Infof("%d packs found. Comparing to your assets directory...", len(packs))
 		dir := viper.GetString("assetsDirectory")
 
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 		if err != nil {
 			logger.Fatal(err, "Cannot read assets directory")
 		}
 
 		var localPacks []data.AssetsPack
 		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+
 			localPacks = append(
 				localPacks, data.AssetsPack{
 					Name:    file.Name(),
