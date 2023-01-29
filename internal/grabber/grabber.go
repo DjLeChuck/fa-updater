@@ -30,14 +30,15 @@ import (
 
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/djlechuck/fa-updater/internal/data"
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/spf13/viper"
 )
 
-func GrabPack(sessionId string, packs []data.AssetsPack) {
+func GrabPack(sessionId string, packs []data.AssetsPack, hideProgress bool) {
 	dir := viper.GetString("assetsDirectory")
 
 	for _, pack := range packs {
-		downloadPack(dir, sessionId, pack)
+		downloadPack(dir, sessionId, pack, hideProgress)
 	}
 }
 
@@ -47,7 +48,7 @@ func removeFile(resp *grab.Response) {
 }
 
 // downloadPack downloads the given pack into the assets directory
-func downloadPack(dir string, sessionId string, pack data.AssetsPack) {
+func downloadPack(dir string, sessionId string, pack data.AssetsPack, hideProgress bool) {
 	// Create client
 	req, err := http.NewRequest("GET", pack.Path, nil)
 	if err != nil {
@@ -64,49 +65,47 @@ func downloadPack(dir string, sessionId string, pack data.AssetsPack) {
 	}
 
 	// Start download
-	fmt.Printf("Downloading %v...\n", pack.Name)
+	logger.Infof("Downloading %v...", pack.Name)
 	resp := client.Do(grabReq)
-	fmt.Printf("  %v\n", resp.HTTPResponse.Status)
+	logger.Info(resp.HTTPResponse.Status)
 
 	if resp.HTTPResponse.StatusCode != 200 {
-		fmt.Fprintln(
-			os.Stderr, "Cannot access to the URL", pack.Path, ". Please ensure the given cookie is correct.",
-		)
-
 		removeFile(resp)
 
-		os.Exit(1)
+		logger.Fatalf(nil, "Cannot access to the URL%s. Please ensure the given cookie is correct.", pack.Path)
 	}
 
 	// Start UI loop
-	t := time.NewTicker(time.Second)
-	defer t.Stop()
+	if hideProgress {
+		logger.Info("Please wait...")
+	} else {
+		t := time.NewTicker(10 * time.Second)
+		defer t.Stop()
 
-Loop:
-	for {
-		select {
-		case <-t.C:
-			fmt.Printf(
-				"  transferred %v / %v bytes (%.2f%%)\n",
-				resp.BytesComplete(),
-				resp.Size(),
-				100*resp.Progress(),
-			)
+	Loop:
+		for {
+			select {
+			case <-t.C:
+				fmt.Printf(
+					"  transferred %v / %v bytes (%.2f%%)\n",
+					resp.BytesComplete(),
+					resp.Size(),
+					100*resp.Progress(),
+				)
 
-		case <-resp.Done:
-			// Download is complete
-			break Loop
+			case <-resp.Done:
+				// Download is complete
+				break Loop
+			}
 		}
 	}
 
 	// Check for errors
 	if err = resp.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Download failed:", err)
-
 		removeFile(resp)
 
-		os.Exit(1)
+		logger.Fatal(err, "Download failed")
 	}
 
-	fmt.Printf("Download saved to %v \n\n", resp.Filename)
+	logger.Infof("Download saved to %s", resp.Filename)
 }

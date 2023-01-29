@@ -35,6 +35,7 @@ import (
 	"github.com/djlechuck/fa-updater/internal/config"
 	"github.com/djlechuck/fa-updater/internal/data"
 	"github.com/djlechuck/fa-updater/internal/grabber"
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/djlechuck/fa-updater/internal/pack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,29 +54,25 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 	Run: func(cmd *cobra.Command, args []string) {
 		err := config.CheckConfigAssetsDirectory()
 		if nil != err {
-			fmt.Fprintln(os.Stderr, "Cannot get assets directory:", err.Error())
-			os.Exit(1)
+			logger.Fatal(err, "Cannot get assets directory")
 		}
 
-		fmt.Printf(
+		logger.Infof(
 			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘ +U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘ +A and ⌘ +C), then go back here and press ENTER.",
 			PatreonPostLink,
 		)
-		fmt.Println("")
 		fmt.Scanln()
 
 		// Parse clipboard content
 		doc, err := htmlquery.Parse(bytes.NewReader(clipboard.ReadBytes()))
 		if nil != err {
-			fmt.Fprintln(os.Stderr, "Cannot parse Patreon post:", err.Error())
-			os.Exit(1)
+			logger.Fatalf(err, "Cannot parse Patreon post")
 		}
 
 		// XPath all the file URLs and get packs
 		list := htmlquery.Find(doc, fmt.Sprintf("//a[starts-with(@href, '%s')]", PatreonPackLinkPrefix))
 		if len(list) == 0 {
-			fmt.Fprintln(os.Stderr, "Cannot find any packs. Ensure you have correctly copy the page source code.")
-			os.Exit(1)
+			logger.Fatal(nil, "Cannot find any packs. Ensure you have correctly copy the page source code.")
 		}
 
 		var packs []data.AssetsPack
@@ -104,13 +101,12 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 			thumbnailsPartTwoPassed = strings.HasPrefix(name, "THUMBNAILS_Part2_")
 		}
 
-		fmt.Println("Find", len(packs), "packs. Comparing to your assets directory...")
+		logger.Infof("%d packs found. Comparing to your assets directory...", len(packs))
 		dir := viper.GetString("assetsDirectory")
 
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Cannot read assets directory:", err.Error())
-			os.Exit(1)
+			logger.Fatal(err, "Cannot read assets directory")
 		}
 
 		var localPacks []data.AssetsPack
@@ -127,28 +123,27 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 		newPacks := pack.PackDiff(packs, localPacks)
 
 		if len(newPacks) == 0 {
-			fmt.Println("All your packs are already up-to-date!")
-
+			logger.Info("All your packs are already up-to-date!")
 			os.Exit(0)
 		}
 
-		fmt.Println("There are", len(newPacks), "packs to download.")
-		fmt.Println("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘ +C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
-		fmt.Println("")
+		logger.Infof("There are %d packs to download.", len(newPacks))
+		logger.Info("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘ +C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
 		fmt.Scanln()
 
-		grabber.GrabPack(clipboard.ReadString(), newPacks)
+		hideProgress, _ := cmd.Flags().GetBool("no-progress")
+		grabber.GrabPack(clipboard.ReadString(), newPacks, hideProgress)
 
 		oldPacks := pack.PackDiff(localPacks, packs)
 
 		if 0 < len(oldPacks) {
-			fmt.Println("Removing old packs:")
+			logger.Info("Removing old packs...")
 
 			for _, oldPack := range oldPacks {
-				fmt.Println("\t", oldPack.Name)
+				logger.Info(oldPack.Name)
 				err := os.Remove(oldPack.Path)
 				if nil != err {
-					fmt.Printf("Error while removing %s: %s", oldPack.Name, err.Error())
+					logger.Error(err, "Error while removing the file")
 				}
 			}
 		}
@@ -157,4 +152,6 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 
 func init() {
 	rootCmd.AddCommand(updateAssetsCmd)
+
+	updateAssetsCmd.Flags().BoolP("no-progress", "n", false, "Hide pack download progression")
 }

@@ -23,10 +23,8 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/djlechuck/fa-updater/internal/config"
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -42,23 +40,21 @@ var setDirectoryCmd = &cobra.Command{
 		isForced, _ := cmd.Flags().GetBool("force")
 
 		if curDir != "" && !isForced {
-			fmt.Printf("The assets directory is already configured: %s\n\n", curDir)
-			fmt.Println("Please, use the flag --force flag if you want to override the configuration.")
+			logger.Infof("The assets directory is already configured: %s", curDir)
+			logger.Info("Please, use the flag --force flag if you want to override the configuration.")
 			return
 		}
 
 		dir := args[0]
 		err := config.CheckDirectory(dir)
 		if nil != err {
-			fmt.Fprintln(os.Stderr, "Cannot validate directory", dir, ":", err.Error())
-			os.Exit(1)
+			logger.Fatalf(err, "Cannot validate directory \"%s\"", dir)
 		}
 
 		viper.Set("assetsDirectory", dir)
 		err = viper.WriteConfig()
 		if nil != err {
-			fmt.Fprintln(os.Stderr, "Error while saving configuration:", err.Error())
-			os.Exit(1)
+			logger.Fatal(err, "Error while saving configuration")
 		}
 	},
 }

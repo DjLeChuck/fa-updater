@@ -23,9 +23,9 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -55,6 +55,8 @@ func Execute() {
 }
 
 func init() {
+	logger.Init()
+
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.fa-updater.yaml)")
@@ -81,7 +83,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading config file %s: %s\n", viper.ConfigFileUsed(), err.Error())
-		os.Exit(1)
+		logger.Fatalf(err, "Error reading config file %s", viper.ConfigFileUsed())
 	}
 }
