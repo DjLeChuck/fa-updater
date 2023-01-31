@@ -26,19 +26,36 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/djlechuck/fa-updater/internal/data"
+	"github.com/djlechuck/fa-updater/internal/dungeondraft"
 	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/spf13/viper"
 )
 
-func GrabPack(sessionId string, packs []data.AssetsPack, hideProgress bool) {
-	dir := viper.GetString("assetsDirectory")
+func GrabPacks(sessionId string, packs []data.PatreonFile, hideProgress bool) {
+	dir := viper.GetString("dungeondraft.assets-directory")
 
-	for _, pack := range packs {
-		downloadPack(dir, sessionId, pack, hideProgress)
+	for _, file := range packs {
+		downloadFile(dir, sessionId, file, hideProgress)
+	}
+}
+
+func GrabThumbnail(sessionId string, file data.PatreonFile, hideProgress bool) {
+	downloadFile(os.TempDir(), sessionId, file, hideProgress)
+
+	tmpFile := filepath.Join(os.TempDir(), file.Name)
+	defer func() {
+		_ = os.Remove(tmpFile)
+	}()
+
+	logger.Infof("Unzipping %s...", file.Name)
+	err := dungeondraft.UnzipThumbnails(tmpFile)
+	if nil != err {
+		logger.Fatalf(err, "Error while unzipping %s", file.Name)
 	}
 }
 
@@ -47,10 +64,10 @@ func removeFile(resp *grab.Response) {
 	_ = os.Remove(resp.Filename)
 }
 
-// downloadPack downloads the given pack into the assets directory
-func downloadPack(dir string, sessionId string, pack data.AssetsPack, hideProgress bool) {
+// downloadPack downloads the given file into the assets directory
+func downloadFile(dir string, sessionId string, file data.PatreonFile, hideProgress bool) {
 	// Create client
-	req, err := http.NewRequest("GET", pack.Path, nil)
+	req, err := http.NewRequest("GET", file.Path, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -61,18 +78,18 @@ func downloadPack(dir string, sessionId string, pack data.AssetsPack, hideProgre
 	client := grab.NewClient()
 	grabReq := &grab.Request{
 		HTTPRequest: req,
-		Filename:    dir,
+		Filename:    filepath.Join(dir, file.Name),
 	}
 
 	// Start download
-	logger.Infof("Downloading %v...", pack.Name)
+	logger.Infof("Downloading %s...", file.Name)
 	resp := client.Do(grabReq)
 	logger.Info(resp.HTTPResponse.Status)
 
 	if resp.HTTPResponse.StatusCode != 200 {
 		removeFile(resp)
 
-		logger.Fatalf(nil, "Cannot access to the URL%s. Please ensure the given cookie is correct.", pack.Path)
+		logger.Fatalf(nil, "Cannot access to the URL%s. Please ensure the given cookie is correct.", file.Path)
 	}
 
 	// Start UI loop

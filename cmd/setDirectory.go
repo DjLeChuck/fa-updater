@@ -36,12 +36,12 @@ var setDirectoryCmd = &cobra.Command{
 	Long:  "Define the directory which contains your assets. It will be used by the updateAssets command to get newer versions if exists.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		curDir := viper.GetString("assetsDirectory")
+		curDir := viper.GetString("dungeondraft.assets-directory")
 		isForced, _ := cmd.Flags().GetBool("force")
 
 		if curDir != "" && !isForced {
 			logger.Infof("The assets directory is already configured: %s", curDir)
-			logger.Info("Please, use the flag --force flag if you want to override the configuration.")
+			logger.Info("Please, use the flag --force flag if you want to override the configuration")
 			return
 		}
 
@@ -51,7 +51,7 @@ var setDirectoryCmd = &cobra.Command{
 			logger.Fatalf(err, "Cannot validate directory \"%s\"", dir)
 		}
 
-		viper.Set("assetsDirectory", dir)
+		viper.Set("dungeondraft.assets-directory", dir)
 		err = viper.WriteConfig()
 		if nil != err {
 			logger.Fatal(err, "Error while saving configuration")

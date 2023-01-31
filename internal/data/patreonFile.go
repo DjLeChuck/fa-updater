@@ -22,9 +22,7 @@ THE SOFTWARE.
 
 package data
 
-type AssetsPack struct {
-	Name       string
-	Path       string
-	Thumbnails bool
-	IsLocal    bool
+type PatreonFile struct {
+	Name string
+	Path string
 }

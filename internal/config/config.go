@@ -24,6 +24,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/spf13/viper"
@@ -31,8 +32,8 @@ import (
 
 var ErrInvalidAssetsDirectory = errors.New("not a valid directory")
 
-func CheckConfigAssetsDirectory() error {
-	return checkDirectory(viper.GetString("assetsDirectory"))
+func CheckConfigDungeondraftAssetsDirectory() error {
+	return checkDirectory(viper.GetString("dungeondraft.assets-directory"))
 }
 
 func CheckDirectory(dir string) error {
@@ -45,6 +46,7 @@ func checkDirectory(dir string) error {
 	}
 
 	if stat, err := os.Stat(dir); nil != err || !stat.IsDir() {
+		fmt.Print(err)
 		return ErrInvalidAssetsDirectory
 	}
 

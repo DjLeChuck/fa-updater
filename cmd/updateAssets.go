@@ -38,6 +38,7 @@ import (
 	"github.com/djlechuck/fa-updater/internal/pack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/net/html"
 )
 
 const PatreonPostLink = "https://www.patreon.com/posts/56375276"
@@ -51,13 +52,13 @@ var updateAssetsCmd = &cobra.Command{
 
 First, you will need to get the Patreon page content, then give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.CheckConfigAssetsDirectory()
+		err := config.CheckConfigDungeondraftAssetsDirectory()
 		if nil != err {
 			logger.Fatal(err, "Cannot get assets directory")
 		}
 
 		logger.Infof(
-			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘ +U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘ +A and ⌘ +C), then go back here and press ENTER.",
+			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘+U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘+A and ⌘+C), then go back here and press ENTER.",
 			PatreonPostLink,
 		)
 		fmt.Scanln()
@@ -71,71 +72,28 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 		// XPath all the file URLs and get packs
 		list := htmlquery.Find(doc, fmt.Sprintf("//a[starts-with(@href, '%s')]", PatreonPackLinkPrefix))
 		if len(list) == 0 {
-			logger.Fatal(nil, "Cannot find any packs. Ensure you have correctly copy the page source code.")
+			logger.Fatal(nil, "Cannot find any packs. Ensure you have correctly copy the page source code")
 		}
 
-		var packs []data.AssetsPack
-		thumbnailsPartTwoPassed := false
-		for _, n := range list {
-			if thumbnailsPartTwoPassed {
-				break
-			}
-
-			name := strings.Trim(htmlquery.InnerText(n), " ")
-			isThumbnails := strings.HasPrefix(name, "THUMBNAILS_")
-
-			if !isThumbnails {
-				name = fmt.Sprintf("FA_%s.dungeondraft_pack", name)
-			}
-
-			packs = append(
-				packs, data.AssetsPack{
-					Name:       name,
-					Path:       htmlquery.SelectAttr(n, "href"),
-					Thumbnails: isThumbnails,
-					IsLocal:    false,
-				},
-			)
-
-			thumbnailsPartTwoPassed = strings.HasPrefix(name, "THUMBNAILS_Part2_")
-		}
+		packs, thumbnails := getListPacks(list)
 
 		logger.Infof("%d packs found. Comparing to your assets directory...", len(packs))
-		dir := viper.GetString("assetsDirectory")
 
-		files, err := os.ReadDir(dir)
-		if err != nil {
-			logger.Fatal(err, "Cannot read assets directory")
-		}
-
-		var localPacks []data.AssetsPack
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
-
-			localPacks = append(
-				localPacks, data.AssetsPack{
-					Name:    file.Name(),
-					Path:    filepath.Join(dir, file.Name()),
-					IsLocal: true,
-				},
-			)
-		}
-
+		localPacks := getLocalPacks()
 		newPacks := pack.PackDiff(packs, localPacks)
 
-		if len(newPacks) == 0 {
-			logger.Info("All your packs are already up-to-date!")
-			os.Exit(0)
-		}
+		// if len(newPacks) == 0 {
+		// 	logger.Info("All your packs are already up-to-date!")
+		// 	os.Exit(0)
+		// }
 
 		logger.Infof("There are %d packs to download.", len(newPacks))
-		logger.Info("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘ +C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
+		logger.Info("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘+C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
 		fmt.Scanln()
 
+		sessionId := clipboard.ReadString()
 		hideProgress, _ := cmd.Flags().GetBool("no-progress")
-		grabber.GrabPack(clipboard.ReadString(), newPacks, hideProgress)
+		grabber.GrabPacks(sessionId, newPacks, hideProgress)
 
 		oldPacks := pack.PackDiff(localPacks, packs)
 
@@ -150,6 +108,8 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 				}
 			}
 		}
+
+		processThumbnails(sessionId, thumbnails, hideProgress)
 	},
 }
 
@@ -157,4 +117,94 @@ func init() {
 	rootCmd.AddCommand(updateAssetsCmd)
 
 	updateAssetsCmd.Flags().BoolP("no-progress", "n", false, "Hide pack download progression")
+}
+
+func getListPacks(list []*html.Node) ([]data.PatreonFile, []data.PatreonFile) {
+	var packs []data.PatreonFile
+	var thumbnails []data.PatreonFile
+
+	for _, n := range list {
+		name := strings.Trim(htmlquery.InnerText(n), " ")
+
+		if strings.HasPrefix(name, "THUMBNAILS_") {
+			thumbnails = append(
+				thumbnails, data.PatreonFile{
+					Name: name,
+					Path: htmlquery.SelectAttr(n, "href"),
+				},
+			)
+		} else {
+			packs = append(
+				packs, data.PatreonFile{
+					Name: fmt.Sprintf("FA_%s.dungeondraft_pack", name),
+					Path: htmlquery.SelectAttr(n, "href"),
+				},
+			)
+		}
+
+		if strings.HasPrefix(name, "THUMBNAILS_Part2_") {
+			break
+		}
+	}
+
+	return packs, thumbnails
+}
+
+func getLocalPacks() []data.PatreonFile {
+	dir := viper.GetString("dungeondraft.assets-directory")
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		logger.Fatal(err, "Cannot read assets directory")
+	}
+
+	var packs []data.PatreonFile
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		packs = append(
+			packs,
+			data.PatreonFile{
+				Name: file.Name(),
+				Path: filepath.Join(dir, file.Name()),
+			},
+		)
+	}
+
+	return packs
+}
+
+func processThumbnails(sessionId string, thumbnails []data.PatreonFile, hideProgress bool) {
+	logger.Info("Checking thumbnails...")
+
+	currentVersions := viper.GetStringSlice("dungeondraft.thumbnails-versions")
+	var latestVersions []string
+
+	for _, thumbnail := range thumbnails {
+		latestVersions = append(latestVersions, thumbnail.Name)
+		ok := false
+
+		if nil != currentVersions {
+			for _, currentVersion := range currentVersions {
+				if thumbnail.Name == currentVersion {
+					ok = true
+					break
+				}
+			}
+		}
+
+		if !ok {
+			grabber.GrabThumbnail(sessionId, thumbnail, hideProgress)
+		}
+	}
+
+	viper.Set("dungeondraft.thumbnails-versions", latestVersions)
+	err := viper.WriteConfig()
+	if nil != err {
+		logger.Fatal(err, "Error while saving configuration")
+	}
+
+	logger.Info("Thumbnails processing done.")
 }

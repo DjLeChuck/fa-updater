@@ -27,14 +27,10 @@ import (
 )
 
 // PackDiff returns packs which are in the first slice but not in the second.
-func PackDiff(a []data.AssetsPack, b []data.AssetsPack) []data.AssetsPack {
-	var packs []data.AssetsPack
+func PackDiff(a []data.PatreonFile, b []data.PatreonFile) []data.PatreonFile {
+	var packs []data.PatreonFile
 
 	for _, aPack := range a {
-		if aPack.Thumbnails {
-			continue
-		}
-
 		found := false
 		for _, bPack := range b {
 			if aPack.Name == bPack.Name {
