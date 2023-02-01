@@ -105,7 +105,7 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 			}
 		}
 
-		processThumbnails(sessionId, thumbnails, hideProgress)
+		processThumbnails(app, sessionId, thumbnails, hideProgress)
 	},
 }
 
@@ -172,35 +172,16 @@ func getLocalPacks() []data.PatreonFile {
 	return packs
 }
 
-func processThumbnails(sessionId string, thumbnails []data.PatreonFile, hideProgress bool) {
+func processThumbnails(app *application, sessionId string, thumbnails []data.PatreonFile, hideProgress bool) {
 	logger.Info("Checking thumbnails...")
 
-	currentVersions := viper.GetStringSlice("dungeondraft.thumbnails-versions")
-	var latestVersions []string
-
 	for _, thumbnail := range thumbnails {
-		latestVersions = append(latestVersions, thumbnail.Name)
-		ok := false
-
-		if nil != currentVersions {
-			for _, currentVersion := range currentVersions {
-				if thumbnail.Name == currentVersion {
-					ok = true
-					break
-				}
-			}
-		}
-
-		if !ok {
+		if app.config.AddDungeondraftThumbnailVersion(thumbnail.Name) {
 			grabber.GrabThumbnail(sessionId, thumbnail, hideProgress)
 		}
 	}
 
-	viper.Set("dungeondraft.thumbnails-versions", latestVersions)
-	err := viper.WriteConfig()
-	if nil != err {
-		logger.Fatal(err, "Error while saving configuration")
-	}
+	app.config.Save()
 
 	logger.Info("Thumbnails processing done.")
 }
