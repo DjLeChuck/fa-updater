@@ -25,8 +25,13 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/djlechuck/fa-updater/internal/vcs"
 	"github.com/spf13/cobra"
+)
+
+var (
+	version string
+	commit  string
+	date    string
 )
 
 // versionCmd represents the version command
@@ -34,7 +39,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of FA Updater",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("FA udpater (c) 2023 DjLeChuck -- %s\n", vcs.Version())
+		fmt.Printf("FA udpater (c) 2023 DjLeChuck -- v%s - %s - %s\n", version, date, commit)
 	},
 }
 

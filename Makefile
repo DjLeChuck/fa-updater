@@ -40,6 +40,4 @@ tidy:
 .PHONY: build/cmd
 build/cmd:
 	@echo 'Building cmd...'
-	GOOS=linux GOARCH=amd64 go build -ldflags="-s" -o=./bin/linux_amd64/fa-updater ./
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s" -o=./bin/windows_amd64/fa-updater.exe ./
-	GOOS=darwin GOARCH=amd64 go build -ldflags="-s" -o=./bin/darwin_amd64/fa-updater ./
+	goreleaser release --snapshot --clean
