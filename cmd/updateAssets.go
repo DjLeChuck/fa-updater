@@ -31,7 +31,6 @@ import (
 
 	"github.com/antchfx/htmlquery"
 	"github.com/djlechuck/fa-updater/internal/clipboard"
-	"github.com/djlechuck/fa-updater/internal/config"
 	"github.com/djlechuck/fa-updater/internal/data"
 	"github.com/djlechuck/fa-updater/internal/grabber"
 	"github.com/djlechuck/fa-updater/internal/logger"
@@ -52,10 +51,9 @@ var updateAssetsCmd = &cobra.Command{
 
 First, you will need to get the Patreon page content, then give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.CheckConfigDungeondraftAssetsDirectory()
-		if nil != err {
-			logger.Fatal(err, "Cannot get assets directory")
-		}
+		app := cmd.Context().Value("app").(*application)
+
+		app.config.CheckDungeondraftAssetsDirectory()
 
 		logger.Infof(
 			"Go on %s with your browser. Display the source of the page (CTRL+U or ⌘+U) and copy it in the clipboard (CTRL+A and CTRL+C or ⌘+A and ⌘+C), then go back here and press ENTER.",
@@ -82,16 +80,14 @@ First, you will need to get the Patreon page content, then give your Patreon ses
 		localPacks := getLocalPacks()
 		newPacks := pack.PackDiff(packs, localPacks)
 
-		// if len(newPacks) == 0 {
-		// 	logger.Info("All your packs are already up-to-date!")
-		// 	os.Exit(0)
-		// }
+		if len(newPacks) == 0 {
+			logger.Info("All your packs are already up-to-date!")
+			os.Exit(0)
+		}
 
 		logger.Infof("There are %d packs to download.", len(newPacks))
-		logger.Info("Please, look at the cookies on the Patreon page and copy the value of the one named \"session_id\" in the clipboard (CTRL+C or ⌘+C), then press ENTER. It should looks like a random string: LC2A4j7WAJe4cjR5Oeicycf4YmlEfQsNB_yqwYiWuh8")
-		fmt.Scanln()
 
-		sessionId := clipboard.ReadString()
+		sessionId := app.patreon.GetSessionId()
 		hideProgress, _ := cmd.Flags().GetBool("no-progress")
 		grabber.GrabPacks(sessionId, newPacks, hideProgress)
 

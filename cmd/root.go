@@ -23,12 +23,20 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"context"
+	"github.com/djlechuck/fa-updater/internal/config"
 	"os"
 
 	"github.com/djlechuck/fa-updater/internal/logger"
+	"github.com/djlechuck/fa-updater/internal/patreon"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+type application struct {
+	patreon *patreon.Patreon
+	config  *config.Config
+}
 
 var cfgFile string
 
@@ -48,7 +56,13 @@ First, be sure to define the directory which contains your assets (fa-updater se
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	app := &application{
+		patreon: &patreon.Patreon{},
+		config:  &config.Config{},
+	}
+	ctx := context.WithValue(context.Background(), "app", app)
+
+	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
 	}

@@ -27,13 +27,22 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/spf13/viper"
 )
 
+type Config struct {
+	dungeondraftAssetsDirectory string
+	tokensAssetsDirectory       string
+}
+
 var ErrInvalidAssetsDirectory = errors.New("not a valid directory")
 
-func CheckConfigDungeondraftAssetsDirectory() error {
-	return checkDirectory(viper.GetString("dungeondraft.assets-directory"))
+func (cfg *Config) CheckDungeondraftAssetsDirectory() {
+	err := checkDirectory(viper.GetString("dungeondraft.assets-directory"))
+	if nil != err {
+		logger.Fatal(err, "Cannot get assets directory")
+	}
 }
 
 func CheckDirectory(dir string) error {
