@@ -31,27 +31,44 @@ import (
 
 // setDirectoryCmd define the directory which contains the FA assets
 var setDirectoryCmd = &cobra.Command{
-	Use:   "setDirectory [path]",
-	Short: "Define the directory which contains your assets",
-	Long:  "Define the directory which contains your assets. It will be used by the updateAssets command to get newer versions if exists.",
-	Args:  cobra.ExactArgs(1),
+	Use:   "setDirectory [type] [path]",
+	Short: "Define the directory which contains your files",
+	Long: `Define the directory which contains your files.
+
+[type] can be one of the following:
+	* dungeondraft: will be used by the updateAssets command to get newer versions if exists
+	* tokens: will be used by the updateTokens command to get newer versions if exists`,
+	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		curDir := viper.GetString("dungeondraft.assets-directory")
+		dirType := args[0]
+
+		var configKey string
+
+		switch dirType {
+		case "tokens":
+			configKey = "tokens.directory"
+		case "dungeondraft":
+			configKey = "dungeondraft.assets-directory"
+		default:
+			logger.Fatalf(nil, "Unknown directory type \"%s\"", dirType)
+		}
+
+		curDir := viper.GetString(configKey)
 		isForced, _ := cmd.Flags().GetBool("force")
 
 		if curDir != "" && !isForced {
-			logger.Infof("The assets directory is already configured: %s", curDir)
+			logger.Infof("The directory is already configured: %s", curDir)
 			logger.Info("Please, use the flag --force flag if you want to override the configuration")
 			return
 		}
 
-		dir := args[0]
+		dir := args[1]
 		err := config.CheckDirectory(dir)
 		if nil != err {
 			logger.Fatalf(err, "Cannot validate directory \"%s\"", dir)
 		}
 
-		viper.Set("dungeondraft.assets-directory", dir)
+		viper.Set(configKey, dir)
 		err = viper.WriteConfig()
 		if nil != err {
 			logger.Fatal(err, "Error while saving configuration")

@@ -45,6 +45,13 @@ func (cfg *Config) CheckDungeondraftAssetsDirectory() {
 	}
 }
 
+func (cfg *Config) CheckTokensAssetsDirectory() {
+	err := checkDirectory(viper.GetString("tokens.directory"))
+	if nil != err {
+		logger.Fatal(err, "Cannot get tokens directory")
+	}
+}
+
 func CheckDirectory(dir string) error {
 	return checkDirectory(dir)
 }
