@@ -31,9 +31,22 @@ import (
 	"github.com/spf13/viper"
 )
 
+var thumbnailsVersions []string
+var downloadedPacks []string
+
+type Dungeondraft struct {
+	AssetsDirectory    string
+	ThumbnailsVersions map[string]bool
+}
+
+type Tokens struct {
+	AssetsDirectory string
+	DownloadedPacks map[string]bool
+}
+
 type Config struct {
-	dungeondraftAssetsDirectory string
-	tokensAssetsDirectory       string
+	Dungeondraft *Dungeondraft
+	Tokens       *Tokens
 }
 
 var ErrInvalidAssetsDirectory = errors.New("not a valid directory")
@@ -52,6 +65,23 @@ func (cfg *Config) CheckTokensAssetsDirectory() {
 	}
 }
 
+func (cfg *Config) AddDungeondraftThumbnailVersion(version string) bool {
+	return addValueInList(
+		version, "dungeondraft.thumbnails-versions", &thumbnailsVersions, &cfg.Dungeondraft.ThumbnailsVersions,
+	)
+}
+
+func (cfg *Config) AddTokensDownloadedPack(pack string) bool {
+	return addValueInList(pack, "tokens.packs", &downloadedPacks, &cfg.Tokens.DownloadedPacks)
+}
+
+func (cfg *Config) Save() {
+	err := viper.WriteConfig()
+	if nil != err {
+		logger.Fatal(err, "Error while saving configuration")
+	}
+}
+
 func CheckDirectory(dir string) error {
 	return checkDirectory(dir)
 }
@@ -67,4 +97,29 @@ func checkDirectory(dir string) error {
 	}
 
 	return nil
+}
+
+func addValueInList(value string, configKey string, list *[]string, listMap *map[string]bool) bool {
+	*list = initExistingList(configKey, listMap)
+
+	if (*listMap)[value] {
+		return false
+	}
+
+	*list = append(*list, value)
+	(*listMap)[value] = true
+
+	viper.Set(configKey, list)
+
+	return true
+}
+
+func initExistingList(configKey string, configMap *map[string]bool) []string {
+	list := viper.GetStringSlice(configKey)
+
+	for _, item := range list {
+		(*configMap)[item] = true
+	}
+
+	return list
 }

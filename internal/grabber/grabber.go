@@ -33,6 +33,7 @@ import (
 	"github.com/djlechuck/fa-updater/internal/data"
 	"github.com/djlechuck/fa-updater/internal/dungeondraft"
 	"github.com/djlechuck/fa-updater/internal/logger"
+	"github.com/djlechuck/fa-updater/internal/unzip"
 	"github.com/spf13/viper"
 )
 
@@ -41,6 +42,21 @@ func GrabPacks(sessionId string, packs []data.PatreonFile, hideProgress bool) {
 
 	for _, file := range packs {
 		downloadFile(dir, sessionId, file, hideProgress)
+	}
+}
+
+func GrabFile(sessionId string, file data.PatreonFile, hideProgress bool) {
+	downloadFile(os.TempDir(), sessionId, file, hideProgress)
+
+	tmpFile := filepath.Join(os.TempDir(), file.Name)
+	defer func() {
+		_ = os.Remove(tmpFile)
+	}()
+
+	logger.Infof("Unzipping %s...", file.Name)
+	err := unzip.Unzip(tmpFile, viper.GetString("tokens.directory"))
+	if nil != err {
+		logger.Fatalf(err, "Error while unzipping %s", file.Name)
 	}
 }
 
@@ -89,7 +105,7 @@ func downloadFile(dir string, sessionId string, file data.PatreonFile, hideProgr
 	if resp.HTTPResponse.StatusCode != 200 {
 		removeFile(resp)
 
-		logger.Fatalf(nil, "Cannot access to the URL%s. Please ensure the given cookie is correct.", file.Path)
+		logger.Fatalf(nil, "Cannot access to the URL %s. Please ensure the given cookie is correct.", file.Path)
 	}
 
 	// Start UI loop

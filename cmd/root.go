@@ -24,9 +24,9 @@ package cmd
 
 import (
 	"context"
-	"github.com/djlechuck/fa-updater/internal/config"
 	"os"
 
+	"github.com/djlechuck/fa-updater/internal/config"
 	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/djlechuck/fa-updater/internal/patreon"
 	"github.com/spf13/cobra"
@@ -58,7 +58,14 @@ First, be sure to define the directory which contains your assets (fa-updater se
 func Execute() {
 	app := &application{
 		patreon: &patreon.Patreon{},
-		config:  &config.Config{},
+		config: &config.Config{
+			Dungeondraft: &config.Dungeondraft{
+				ThumbnailsVersions: make(map[string]bool),
+			},
+			Tokens: &config.Tokens{
+				DownloadedPacks: make(map[string]bool),
+			},
+		},
 	}
 	ctx := context.WithValue(context.Background(), "app", app)
 

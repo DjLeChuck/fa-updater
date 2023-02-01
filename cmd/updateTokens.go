@@ -23,11 +23,19 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
+	"github.com/djlechuck/fa-updater/internal/data"
+	"github.com/djlechuck/fa-updater/internal/grabber"
+	"github.com/djlechuck/fa-updater/internal/logger"
 	"github.com/mmcdole/gofeed"
 	"github.com/spf13/cobra"
 )
+
+var re = regexp.MustCompile(`https://www\.patreon\.com/file\?h=[0-9]+&amp;i=[0-9]+`)
 
 // updateTokensCmd represents the updateTokens command
 var updateTokensCmd = &cobra.Command{
@@ -41,7 +49,8 @@ You will need to give your Patreon session's cookie in order to be able to downl
 
 		app.config.CheckTokensAssetsDirectory()
 
-		app.patreon.GetSessionId()
+		sessionId := app.patreon.GetSessionId()
+		hideProgress, _ := cmd.Flags().GetBool("no-progress")
 
 		fp := gofeed.NewParser()
 		page := 1
@@ -57,16 +66,57 @@ You will need to give your Patreon session's cookie in order to be able to downl
 			if nil == feed {
 				hasItems = false
 			} else {
+				logger.Infof("Processing page %d...", page)
+
 				for _, item := range feed.Items {
-					fmt.Println(item.Title)
+					if ignoreItem(item) {
+						continue
+					}
+
+					link, err := extractPatreonLink(item)
+					if nil != err {
+						logger.Error(err, "")
+						continue
+					}
+
+					file := data.PatreonFile{
+						Name: item.Title,
+						Path: link,
+					}
+
+					if app.config.AddTokensDownloadedPack(file.Name) {
+						grabber.GrabFile(sessionId, file, hideProgress)
+					}
 				}
 
 				page++
 			}
 		}
+
+		app.config.Save()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(updateTokensCmd)
+
+	updateTokensCmd.Flags().BoolP("no-progress", "n", false, "Hide pack download progression")
+}
+
+func ignoreItem(item *gofeed.Item) bool {
+	// Ignore bundles
+	if strings.Contains(item.Title, "Bundle") {
+		return true
+	}
+
+	return false
+}
+
+func extractPatreonLink(item *gofeed.Item) (string, error) {
+	link := re.FindString(item.Description)
+	if "" == link {
+		return "", errors.New("cannot find Patreon link")
+	}
+
+	return strings.ReplaceAll(link, "&amp;", "&"), nil
 }
