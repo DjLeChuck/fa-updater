@@ -105,16 +105,12 @@ func init() {
 
 func ignoreItem(item *gofeed.Item) bool {
 	// Ignore bundles
-	if strings.Contains(item.Title, "Bundle") {
-		return true
-	}
-
-	return false
+	return strings.Contains(item.Title, "Bundle")
 }
 
 func extractPatreonLink(item *gofeed.Item) (string, error) {
 	link := re.FindString(item.Description)
-	if "" == link {
+	if link == "" {
 		return "", errors.New("cannot find Patreon link")
 	}
 

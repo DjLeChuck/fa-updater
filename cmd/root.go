@@ -24,6 +24,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/djlechuck/fa-updater/internal/config"
@@ -40,6 +41,16 @@ type application struct {
 
 var cfgFile string
 
+type contextKey string
+
+const appContextKey = contextKey("app")
+
+var (
+	version string
+	date    string
+	commit  string
+)
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "fa-updater",
@@ -50,7 +61,7 @@ First, be sure to define the directory which contains your assets (fa-updater se
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
-	Version: "0.0.1",
+	Version: fmt.Sprintf("FA udpater (c) 2023 DjLeChuck -- v%s - %s - %s\n", version, date, commit),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -67,7 +78,7 @@ func Execute() {
 			},
 		},
 	}
-	ctx := context.WithValue(context.Background(), "app", app)
+	ctx := context.WithValue(context.Background(), appContextKey, app)
 
 	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
