@@ -6,9 +6,7 @@ before:
     - go mod tidy
     - go mod verify
 builds:
-  - env:
-      - CGO_ENABLED=0
-    goos:
+  - goos:
       - linux
       - windows
       - darwin
