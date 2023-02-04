@@ -100,7 +100,9 @@ func checkDirectory(dir string) error {
 }
 
 func addValueInList(value string, configKey string, list *[]string, listMap *map[string]bool) bool {
-	*list = initExistingList(configKey, listMap)
+	if len(*list) == 0 {
+		*list = initExistingList(configKey, listMap)
+	}
 
 	if (*listMap)[value] {
 		return false
