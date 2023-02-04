@@ -45,7 +45,7 @@ var updateTokensCmd = &cobra.Command{
 
 You will need to give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app := cmd.Context().Value("app").(*application)
+		app := cmd.Context().Value(AppContextKey).(*application)
 
 		app.config.CheckTokensAssetsDirectory()
 

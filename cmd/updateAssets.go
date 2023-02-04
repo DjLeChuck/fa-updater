@@ -51,7 +51,7 @@ var updateAssetsCmd = &cobra.Command{
 
 First, you will need to get the Patreon page content, then give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app := cmd.Context().Value("app").(*application)
+		app := cmd.Context().Value(AppContextKey).(*application)
 
 		app.config.CheckDungeondraftAssetsDirectory()
 

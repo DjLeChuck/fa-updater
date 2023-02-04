@@ -43,7 +43,7 @@ var cfgFile string
 
 type contextKey string
 
-const appContextKey = contextKey("app")
+const AppContextKey = contextKey("app")
 
 var (
 	version string
@@ -78,7 +78,7 @@ func Execute() {
 			},
 		},
 	}
-	ctx := context.WithValue(context.Background(), appContextKey, app)
+	ctx := context.WithValue(context.Background(), AppContextKey, app)
 
 	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
