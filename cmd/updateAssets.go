@@ -47,7 +47,7 @@ const PatreonPackLinkPrefix = "https://www.patreon.com/file?h=17713082"
 var updateAssetsCmd = &cobra.Command{
 	Use:   "updateAssets",
 	Short: "Launch the update process",
-	Long: `Launch the update process to compare latest available packs with the ones in your assets directory.
+	Long: `Launch the update process to compare the latest available packs with the ones in your assets' directory.
 
 First, you will need to get the Patreon page content, then give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
