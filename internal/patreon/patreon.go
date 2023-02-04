@@ -34,7 +34,7 @@ type Patreon struct {
 }
 
 func (patreon *Patreon) GetSessionId() string {
-	if patreon.sessionId == "" {
+	if patreon.sessionId != "" {
 		return patreon.sessionId
 	}
 
