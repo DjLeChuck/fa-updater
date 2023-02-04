@@ -41,7 +41,7 @@ var re = regexp.MustCompile(`https://www\.patreon\.com/file\?h=[0-9]+&amp;i=[0-9
 var updateTokensCmd = &cobra.Command{
 	Use:   "updateTokens",
 	Short: "Update all tokens",
-	Long: `Launch the update process to compare latest available tokens with the ones in your tokens assets directory.
+	Long: `Launch the update process to compare the latest available tokens with the ones in your tokens assets directory.
 
 You will need to give your Patreon session's cookie in order to be able to download the files.`,
 	Run: func(cmd *cobra.Command, args []string) {
