@@ -50,10 +50,9 @@ func getDataDirectory() string {
 	var dir string
 	osName := runtime.GOOS
 	switch osName {
-	case "windows":
-		// cascade
-	case "darwin":
+	case "windows", "darwin":
 		dir = filepath.Join(configDir, "Dungeondraft")
+		break
 	case "linux":
 		homeDir, err := os.UserHomeDir()
 		if nil != err {
