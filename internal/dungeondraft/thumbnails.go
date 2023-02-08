@@ -52,7 +52,6 @@ func getDataDirectory() string {
 	switch osName {
 	case "windows", "darwin":
 		dir = filepath.Join(configDir, "Dungeondraft")
-		break
 	case "linux":
 		homeDir, err := os.UserHomeDir()
 		if nil != err {
